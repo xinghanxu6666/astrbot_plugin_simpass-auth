@@ -1,0 +1,13 @@
+{
+  "dev_uuid": {
+    "description": "SimPass 开发者 UUID（在 SimPass 开发者后台获取）",
+    "type": "string",
+    "default": ""
+  },
+  "api_url": {
+    "description": "SimPass API 地址",
+    "hint": "例如：https://txpass.cn/api/dev/auth",
+    "type": "string",
+    "default": "https://txpass.cn/api/dev/auth"
+  }
+}

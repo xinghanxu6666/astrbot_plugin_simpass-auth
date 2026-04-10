@@ -3,6 +3,7 @@ import aiohttp
 from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api.star import Context, Star, register
 from astrbot.api import logger
+from astrbot import AstrBotConfig
 
 # UUID 正则：标准 8-4-4-4-12 格式
 UUID_PATTERN = re.compile(
@@ -16,20 +17,20 @@ def mask_uuid(text: str) -> str:
     def _mask(m: re.Match) -> str:
         s = m.group()
         return s[:8] + "-****-****-****-************"
-
     return UUID_PATTERN.sub(_mask, text)
 
 
 @register(
     "astrbot_plugin_simpass_otp",
-    "YourName",
+    "xinghanxu",
     "SimPass OTP 验证插件，使用 /sp-otp <id> <验证码> 进行身份验证",
     "1.0.0",
-    "https://github.com/yourname/astrbot_plugin_simpass_otp",
+    "https://github.com/xinghanxu6666/astrbot_plugin_simpass-auth",
 )
 class SimpassOtpPlugin(Star):
-    def __init__(self, context: Context):
+    def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
+        self.config = config
 
     @filter.command("sp-otp")
     async def sp_otp(self, event: AstrMessageEvent):
@@ -72,7 +73,7 @@ class SimpassOtpPlugin(Star):
             )
             return
 
-        logger.info(f"[SimpassOTP] 发起验证请求：user_id={user_id}, api_url={api_url}")
+        logger.info(f"[SimpassOTP] 发起验证请求：user_id={user_id}")
 
         params = {
             "uuid": dev_uuid,
@@ -137,19 +138,3 @@ class SimpassOtpPlugin(Star):
     async def terminate(self):
         """插件卸载时调用。"""
         pass
-
-    # 插件配置 schema，WebUI 控制台将根据此自动渲染表单
-    @staticmethod
-    def _conf_schema():
-        return {
-            "dev_uuid": {
-                "description": "SimPass 开发者 UUID（在 SimPass 开发者后台获取）",
-                "type": "string",
-                "default": "",
-            },
-            "api_url": {
-                "description": "SimPass API 地址（如 https://txpass.cn/api/dev/auth）",
-                "type": "string",
-                "default": "https://txpass.cn/api/dev/auth",
-            },
-        }
