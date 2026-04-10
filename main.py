@@ -3,7 +3,6 @@ import aiohttp
 from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api.star import Context, Star, register
 from astrbot.api import logger
-from astrbot import AstrBotConfig
 
 # UUID 正则：标准 8-4-4-4-12 格式
 UUID_PATTERN = re.compile(
@@ -28,9 +27,10 @@ def mask_uuid(text: str) -> str:
     "https://github.com/xinghanxu6666/astrbot_plugin_simpass-auth",
 )
 class SimpassOtpPlugin(Star):
-    def __init__(self, context: Context, config: AstrBotConfig):
+    def __init__(self, context: Context, config=None):
         super().__init__(context)
-        self.config = config
+        # 兼容 AstrBot 未传入 config 的情况（_conf_schema.json 未被识别时）
+        self.config = config if config is not None else {}
 
     @filter.command("sp-otp")
     async def sp_otp(self, event: AstrMessageEvent):
@@ -59,14 +59,14 @@ class SimpassOtpPlugin(Star):
         verify_code = int(verify_code_str)
 
         # 从控制台配置读取参数
-        dev_uuid: str = self.config.get("dev_uuid", "").strip()
+        dev_uuid: str = (self.config.get("dev_uuid") or "").strip()
         if not dev_uuid:
             yield event.plain_result(
                 "❌ 插件尚未配置开发者 UUID，请在插件设置中填写 dev_uuid。"
             )
             return
 
-        api_url: str = self.config.get("api_url", "").strip()
+        api_url: str = (self.config.get("api_url") or "").strip()
         if not api_url:
             yield event.plain_result(
                 "❌ 插件尚未配置 API 地址，请在插件设置中填写 api_url。"
