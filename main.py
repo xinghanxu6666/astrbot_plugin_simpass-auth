@@ -21,7 +21,7 @@ def mask_uuid(text: str) -> str:
 
 
 @register(
-    "astrbot_plugin_simpass_otp",
+    "astrbot_plugin_simpass-auth",
     "xinghanxu",
     "SimPass OTP 验证插件，使用 /sp-otp <id> <验证码> 进行身份验证",
     "1.0.0",

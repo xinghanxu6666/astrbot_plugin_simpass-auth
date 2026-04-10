@@ -1,4 +1,4 @@
-name: astrbot_plugin_simpass_otp
+name: astrbot_plugin_simpass-auth
 display_name: SimPass OTP 验证
 author: xinghanxu
 version: 1.0.0
