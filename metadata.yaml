@@ -1,0 +1,7 @@
+name: astrbot_plugin_simpass_otp
+display_name: SimPass OTP 验证
+author: xinghanxu
+version: 1.0.0
+description: 使用 /sp-otp <用户ID> <验证码> 向 SimPass 发起身份验证，自动脱敏响应中的 UUID。
+repo: https://github.com/yourname/astrbot_plugin_simpass_otp
+astrbot_version: ">=4.0.0"
