@@ -8,6 +8,6 @@
     "description": "SimPass API 地址",
     "hint": "例如：https://txpass.cn/api/dev/auth",
     "type": "string",
-    "default": "https://txpass.cn/api/dev/auth"
+    "default": "https://pass.simpfun.cn/api/dev/auth"
   }
 }

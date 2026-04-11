@@ -1,4 +1,5 @@
 import re
+import json
 import aiohttp
 from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api.star import Context, Star, register
@@ -23,13 +24,12 @@ def mask_uuid(text: str) -> str:
     "astrbot_plugin_simpass-auth",
     "xinghanxu",
     "SimPass OTP 验证插件，使用 /sp-otp <id> <验证码> 进行身份验证",
-    "1.0.0",
+    "1.0.4",
     "https://github.com/xinghanxu6666/astrbot_plugin_simpass-auth",
 )
 class SimpassOtpPlugin(Star):
     def __init__(self, context: Context, config=None):
         super().__init__(context)
-        # 兼容 AstrBot 未传入 config 的情况（_conf_schema.json 未被识别时）
         self.config = config if config is not None else {}
 
     @filter.command("sp-otp")
@@ -55,9 +55,6 @@ class SimpassOtpPlugin(Star):
             yield event.plain_result("❌ 验证码必须为数字。")
             return
 
-        user_id = int(user_id_str)
-        verify_code = int(verify_code_str)
-
         # 从控制台配置读取参数
         dev_uuid: str = (self.config.get("dev_uuid") or "").strip()
         if not dev_uuid:
@@ -66,34 +63,46 @@ class SimpassOtpPlugin(Star):
             )
             return
 
-        api_url: str = (self.config.get("api_url") or "").strip()
+        api_url: str = (self.config.get("api_url") or "").strip().rstrip("/")
         if not api_url:
             yield event.plain_result(
                 "❌ 插件尚未配置 API 地址，请在插件设置中填写 api_url。"
             )
             return
 
-        logger.info(f"[SimpassOTP] 发起验证请求：user_id={user_id}")
+        # 使用 multipart/form-data 传参（API 文档要求）
+        form = aiohttp.FormData()
+        form.add_field("uuid", dev_uuid)
+        form.add_field("user_id", user_id_str)
+        form.add_field("verify_code", verify_code_str)
 
-        params = {
-            "uuid": dev_uuid,
-            "user_id": user_id,
-            "verify_code": verify_code,
-        }
+        logger.info(f"[SimpassOTP] 请求：{api_url} user_id={user_id_str}")
 
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
                     api_url,
-                    params=params,
+                    data=form,
                     timeout=aiohttp.ClientTimeout(total=10),
                 ) as resp:
+                    raw = await resp.text()
+                    logger.info(f"[SimpassOTP] 响应 HTTP {resp.status}：{raw[:500]}")
+
                     if resp.status != 200:
+                        tip = mask_uuid(raw[:300]) if raw else "（无响应体）"
                         yield event.plain_result(
-                            f"❌ SimPass 服务器返回异常状态码：{resp.status}"
+                            f"❌ SimPass 服务器异常（HTTP {resp.status}）\n{tip}"
                         )
                         return
-                    data: dict = await resp.json(content_type=None)
+
+                    try:
+                        data: dict = json.loads(raw)
+                    except Exception:
+                        yield event.plain_result(
+                            f"❌ 响应解析失败：{mask_uuid(raw[:200])}"
+                        )
+                        return
+
         except aiohttp.ClientConnectorError:
             yield event.plain_result("❌ 无法连接到 SimPass 服务器，请检查网络或稍后重试。")
             return
@@ -108,7 +117,7 @@ class SimpassOtpPlugin(Star):
         # 构建返回消息
         code = data.get("code", -1)
         msg = data.get("msg", "未知信息")
-        user_info: dict = data.get("user_info", {})
+        user_info: dict = data.get("user_info") or {}
 
         if code == 200:
             simpass_uid = user_info.get("simpass_uid", "N/A")
@@ -130,9 +139,7 @@ class SimpassOtpPlugin(Star):
         else:
             result_text = f"❌ 验证失败（code={code}）\n消息：{msg}"
 
-        # 脱敏处理：替换响应中所有 UUID
         result_text = mask_uuid(result_text)
-
         yield event.plain_result(result_text)
 
     async def terminate(self):
